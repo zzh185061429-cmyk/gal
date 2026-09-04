@@ -5,7 +5,7 @@ description: 从零新建「幻璃镜式」galgame 楼层剧本前端新项目 �
 
 # Galgame 楼层剧本前端 · 新建项目套件
 
-> 版本 2026-09-04 炼化 · 自包含可分发：整目录（SKILL.md + references/）拷入 `~/.agents/skills/` 即可在任意机器/工作区生效，无外部依赖。
+> 版本 2026-09-04 r2 炼化（吸收岁时历/黄历子系统、性能与重渲染清单）· 自包含可分发：整目录（SKILL.md + references/）拷入 `~/.agents/skills/` 即可在任意机器/工作区生效，无外部依赖。
 
 从零新建一套 galgame 楼层剧本前端：SillyTavern 酒馆助手（TavernHelper/JS-Slash-Runner）iframe 内嵌的 React 单文件应用，把 AI 的楼层文本变成可播放的视觉小说——剧本解析、逐行演出、选项交互、变量收账、构建交付。本 skill 的知识**自带、自包含**，参考实现是幻璃镜项目，但不依赖其源码；文中 `<项目名>` 是你的新项目名占位符。
 
@@ -60,6 +60,9 @@ React App（GameContext 统一监听酒馆事件，只向 UI 广播 4 个信号�
 ### 第 6 步：天气与昼夜（建议默认子系统）
 昼夜/时段流逝感几乎所有卡都需要。时段天气引擎：季节概率表 + 马尔可夫链 7 日预报（存聊天变量）+ 确定性突变（日期哈希种子）+ 哈希 fallback；`outdoorMultiplier` 让天气影响 NPC 行为；AI 注入当前天气/时段详情/预报；正文旁白行天气回写；视觉层半透明色块 + Canvas 粒子（**禁 backdrop-filter**，iframe 白屏）。→ `references/weather-daynight.md`
 
+### 第 6.5 步：游戏内日历与黄历（可选，中式世界观加分项）
+真实农历/节气/建除十二神宜忌，纯本地算法零 AI API；历注三层结构（宜忌硬规则 + 值神之性 + 玩法化翻译）让黄历成为 AI 可执行的行动指令系统；昼夜判定可升级为按节气日出日入漂移。→ `references/weather-daynight.md` §12
+
 ### 第 7 步：音频系统（可选）
 零音频文件：SFX 引擎用 Web Audio API 程序化合成（UI 音效集 + 打字 blip——按说话人名字哈希确定性定调）；AudioContext 必须等首次用户交互再创建；BGM 悬浮播放器吃直链曲库；设置走 pub-sub store + useSyncExternalStore + localStorage。→ `references/audio.md`
 
@@ -103,6 +106,10 @@ React App（GameContext 统一监听酒馆事件，只向 UI 广播 4 个信号�
 | src/data/*.ts 里的图 URL 手改后被覆盖 | 这些文件是生成器产物；要改图走生图工具上传 + 重跑生成器 |
 | 天气特效和 AI 看到的天气对不上 | 只改了渲染状态没写回预报缓存；突变/扰动必须 setCurrentPeriodWeather 落预报，所有消费方统一走 getWeather() |
 | 天气视觉用 backdrop-filter 白屏 | iframe 上下文禁用 backdrop-filter；用半透明色块 + Canvas 粒子叠加 |
+| 黄历宜忌同一天两次打开内容不一样 | 用随机抽宜忌；应用建除十二神（日支与月支关系确定性定神）或确定性种子 |
+| 节气/农历日期差一天 | 用了固定近似日期表；节气每年漂移需天文公式按年算（寿星公式），农历用 lunarInfo 查表（1900-2100） |
+| 冬天傍晚场景还是白昼 CG | 昼夜判定固定 6/18 点；按节气日出日入表漂移（冬至约 17 点已入夜，夏至 19 点仍是昼） |
+| 列表每操作一次整体重渲染卡顿 | 列表项未提取 memo 子组件，或给 memo 子组件传了内联函数/对象（每次新引用击穿 memo） |
 | 地点随机每次刷新都变 / 全员齐跳 | 种子必须同时含角色+日期+小时（缺小时全天不变，缺角色全员同刻跳）；权重修正生成新数组不改原数据 |
 | 访客出现在主人不在家的住所 | 串门条目在加权前过滤；主人被正文 override 时视为不在家；先预计算主人在家表（skipVisitSpots 防递归）再逐角色选位 |
 
@@ -115,7 +122,7 @@ React App（GameContext 统一监听酒馆事件，只向 UI 广播 4 个信号�
 | `references/architecture.md` | 总架构：事件生命周期状态机、楼层三态、发送/重生成完整链路、TavernHelper API 用法清单 |
 | `references/mvu.md` | MVU 接入全案：bundle 挂载、Zod schema、世界书契约、前端适配层、降级链 |
 | `references/frontend-playbook.md` | React 演出层实现：入口守卫、iframe 守卫、伪全屏、打字机、立绘、移动端、CSS 设计系统 |
-| `references/weather-daynight.md` | 时段天气引擎：昼夜/时段、季节概率、马尔可夫 7 日预报、确定性突变、正文回写与 AI 注入、视觉叠层 |
+| `references/weather-daynight.md` | 时段天气引擎：昼夜/时段、季节概率、马尔可夫 7 日预报、确定性突变、正文回写与 AI 注入、视觉叠层；岁时历（真实农历/节气/黄历宜忌/节气日出日入，§12） |
 | `references/audio.md` | 音频子系统：SFX 合成引擎（UI 音效/打字 blip/情绪音效）、pub-sub 设置层、BGM 播放器 |
 | `references/random-pools.md` | 随机池图引擎：幂等绑定、洗牌袋、属性放宽候选链、tier 型地点池、确定性随机 |
 | `references/character-locations.md` | 角色地点池：三层位置模型、空闲池加权随机五步修正链、串门校验、位置表 AI 注入 |

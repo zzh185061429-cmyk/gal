@@ -108,3 +108,16 @@ nsfwCgUrl（NSFW 覆盖一切）
 - **空状态**：script 为空时仍渲染 HUD + 「等待剧情内容」，不白屏。
 - **cn 工具**：`cn = twMerge(clsx(...))`（tailwind-merge + clsx）。
 - **新手引导**（可选）：步骤位掩码存聊天变量，每次状态变化重算「第一个未完成且满足触发条件的步骤」。
+
+## 13. 性能与重渲染清单（症状 → 解法）
+
+| 症状 | 解法 |
+|---|---|
+| 列表里点一个节点/编辑一张卡，整个列表重渲染卡顿 | 列表项提取 `React.memo` 子组件（TreeNode / ShelfItem / CardItem 模式），父组件只传稳定 props |
+| 播放屏每行台词都重渲染背景/平行事件面板 | 重型静态区块提取 memo 组件（SceneBackground / ParallelEventsPanel 模式） |
+| 同一个回调内联写了 3 遍 | 抽 1 个 `useCallback`——内联箭头函数每次渲染都是新引用，传给 memo 子组件会击穿 memo |
+| Provider 每轮让全部消费方重渲染 | value 里的 setter 全 `useCallback` 稳定化（见 architecture.md §9） |
+| 有轮询定时器在跑 | 有事件就别轮询：`setInterval` → 事件监听驱动 |
+| 首屏被大树/大图鉴拖卡 | 懒加载（地点树在弹窗打开时才构建） |
+
+原则：**memo 生效的前提是 props 引用稳定**。内联对象/数组/函数字面量每次渲染都是新引用，等于白 memo——提到组件外当常量，或用 `useMemo`/`useCallback` 包住。动手前先用 React DevTools Profiler 确认重渲染源，再按表落刀。
