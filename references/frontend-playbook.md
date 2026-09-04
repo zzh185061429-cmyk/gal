@@ -98,7 +98,7 @@ nsfwCgUrl（NSFW 覆盖一切）
 - **语义色板**：`--color-xxx` 直接变成 `bg-ink-900` 等工具类。按语义命名（背景墨色/正文纸色/主行动色/次强调/描边金/夜间面板），不用色值命名——换主题只改 @theme。
 - **字体三件**：`--font-serif`（正文）、`--font-sans`、`--font-display`（标题/印章用展示字体）。
 - **质感类**（按题材设计）：纸张纹理（双层 radial-gradient）、印章（rotate + 展示字体）、发光描边、竖排 `vertical-rl`、自定义滚动条。
-- **galgame 演出类**：`.vn-textbox`（顶部渐入+backdrop-blur）、`.nameplate`（名牌，消费 `--plate-accent`/`--plate-glow` 角色主题色变量）、选项条（hover 右移+发光）、统一按钮体系。
+- **galgame 演出类**：`.vn-textbox`（顶部渐入+backdrop-blur——小面积 blur 真机安全；backdrop-filter 禁令只针对大面积常驻叠层，见 weather-daynight.md §10）、`.nameplate`（名牌，消费 `--plate-accent`/`--plate-glow` 角色主题色变量）、选项条（hover 右移+发光）、统一按钮体系。
 - **层级令牌**（注释固定）：场景 z-0/10 → 天气 z-[19] → 文本框 z-20 → HUD z-30 → 弹窗 z-40 → 设置 z-60。动一层全表对一遍。
 - **关键帧**：氛围粒子（元素级 CSS 变量控制漂移）、呼吸发光、流光文字（background-clip:text）；`@media (prefers-reduced-motion: reduce)` 统一关停装饰动画。
 

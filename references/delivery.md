@@ -30,6 +30,8 @@
 | `<项目名>-脚本-锁定前端.json`（可选） | 全屏楼层锁定脚本 |
 | `导入说明.txt` | 导入步骤 |
 
+交付层最有价值、两项目均真机验证的两件：**界面-正式正则**（§4）与**锁定前端脚本**（§8）。已评估弃置的变体：统一视图（脚本 JSON 引导单 iframe 覆盖全部聊天、隐藏酒馆原生楼层）——无价值，不纳入交付清单，勿再从蓝本项目里吸收它。
+
 ## 4. 界面正则 JSON 字段逐解
 
 ```json
@@ -105,7 +107,7 @@ node tools\publis\publish_artifact.mjs <仓库> dist/yaoguai/<项目名>/index.h
 
 ## 8. 锁定前端脚本（可选，纯脚本项目）
 
-不是防篡改，而是**全屏某楼层时隐藏其他楼层并防止酒馆销毁该楼层 iframe** 的体验增强脚本。纯脚本项目（无 html 入口），产物 `index.js`，用脚本 JSON `content: import 'CDN…/index.js'` 挂载。四层机制：
+双项目真机验证过的交付件。不是防篡改，而是**全屏某楼层时隐藏其他楼层并防止酒馆销毁该楼层 iframe** 的体验增强脚本。纯脚本项目（无 html 入口），产物 `index.js`，用脚本 JSON `content: import 'CDN…/index.js'` 挂载。四层机制：
 
 1. **CSS 隐藏**：向父页注入 `<style id="tavern-<项目名>-lock-style">`：`.mes:not([mesid="N"]) { display:none !important }`。
 2. **父页原型拦截（核心）**：向 `window.parent.document.head` 注入 `<script>`，在**父页 JS 上下文**里猴子补丁三个 API：`HTMLIFrameElement.prototype.remove`、`Node.prototype.removeChild`（含嵌套检查：被删节点内部若含受保护楼层 iframe 也拦截）、`jQuery.fn.remove`（酒馆大量用 jQuery）。目标节点的 `closest('[mesid]')` 等于锁定楼层号时跳过删除——从源头阻止酒馆切换/重渲染时销毁界面 iframe。提供 `window.__tavernLockCleanup()` 恢复原型；重新注入前先清理旧补丁。

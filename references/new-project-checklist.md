@@ -57,7 +57,7 @@
 | 阶段 | 内容 | 完成标志（可验收） |
 |---|---|---|
 | A 协议+解析 | 定协议、写解析器纯函数 | mock 楼层文本喂入，ScriptLine[] 输出正确；无 `<content>` 时降级正确 |
-| B 事件层 | GameContext 四信号 + 三态 + 生成锁 | 本地正则（disabled JSON 指向 localhost）下真酒馆翻楼/发送/重生成闭环 |
+| B 事件层 | GameContext 四信号 + 三态 + 生成锁 | 先跑 `references/api-probe.md`（iframe 语境）；本地正则（disabled JSON 指向 localhost）下真酒馆翻楼/发送/重生成闭环 |
 | C 演出层 | 打字机/立绘/背景/选项 | 浏览器裸跑可完整播一幕，交互不卡帧 |
 | D 可选子系统 | 按 §4 逐个加 | 每个子系统各自有验收样例 |
 | E 交付 | 交付 JSON + 发布 + 真酒馆导入 | 按导入说明五步走通，蓝灯条目出现、iframe 正常加载 |
