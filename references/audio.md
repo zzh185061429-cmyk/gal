@@ -74,3 +74,35 @@ export function useBgmSettings() {
 - **悬浮球可拖拽**：pointer capture + 6px 移动阈值区分"拖动"与"点击"（未拖动的 pointerUp = 展开/收起面板）；位置存 localStorage `<项目名>-music-pos`，clamp 在视口内；展开面板 fixed 定位跟随球，放不下自动翻转（上方→下方）并 clamp。
 - 所有按钮 `sfx.play('click')`；唱片旋转动画受全局 `effectsEnabled` 总开关约束。
 - 音量滑条：透明 range input 叠在自绘进度条上（自定义外观）。
+
+## 4. 跨楼层 BGM 出声权仲裁（多楼层必读，r6）
+
+酒馆正则把**每个 AI 楼层都替换成整套应用的 iframe**——每个 iframe 都 import 一份引擎（模块级单例）、都有潜在 `<audio>`。楼层多于一个后不裁决，就会多楼层同时出好几首曲子。§3 的单层播放器是基线；要支持多楼层，加一层与具体曲库无关的仲裁：
+
+### 架构要点
+
+- **意图与出声权分离**：
+  - **意图**（放不放 playing、第几曲、播放模式）存 localStorage 共享区 `<项目名>-bgm-shared`，同源各层互通；任何楼层的遥控器改动全体同步。
+  - **出声权**（fgMid = 楼层 mesid）属于**最后一个含本应用 iframe 的楼层**——不看可见性：全屏读旧楼层时新楼层一到即接管，旧层让位静默。识别同应用楼层：每个引擎在 window 挂 `__<项目名>_APP__` 标记，只统计带标记的后续楼层（用户消息楼层、无关脚本 iframe 不算）。
+  - 可选：曲库按场景分模块，模块自动档由上层逻辑喂入，manual > auto > 无。
+- **每 500ms tick 巡检**：兜底 storage 事件缺失 + 出声权裁决 + 起播重试。
+- **音频元素只在出声楼层创建**（隐藏 `<audio>`）；非出声层恒静默。
+- **自动播放策略**：起播被拒挂一次性 pointerdown/keydown 补播 + tick 周期重试（永远按共享区状态驱动，被拦后下次对账自动补上）。
+- **进度持久化**：出声楼层每秒把 `fgTime`（秒）/`fgKey`（曲键）写进共享区；接管楼层加载到**同曲**时 `loadedmetadata` 后 seek 接续，换曲从头播。
+
+### 六条铁律（每条都是踩过的真坑）
+
+1. **writeShared 先读盘再合并 patch**——绝不用本地（可能过期）状态整包回写，否则把别的楼层刚写的 playing/fgMid/trackIdx 回滚：表现为暂停被撤销、出声权反复易主（齐鸣/忽大忽小）、曲目从头重播。
+2. **togglePlay 按共享区最新值翻转**（`!loadShared().playing`），不按本地旧值。
+3. **曲内进度进共享区**（见上），否则每次出声权移交/切层都从头重播。进度字段与 UI 字段**分离对账**（只比较 UI 字段再 notify/apply），否则每秒进度写会触发全楼层 React 重渲染。
+4. **mesid 探测瞬时失败不能永久缓存 null**——null 语义是「独立预览 = 永远出声」，一失败就固化会让该层永远自认出声层、不受任何裁决；探测期（约 30s）每 tick 重试，之后才固化。
+5. **同 iframe 重复执行防御**：window 挂 `__<项目名>_BGM_INSTANCE__`，重执行先 dispose 旧实例（停巡检、移除 audio），防双 `<audio>` 齐鸣；dispose 后的实例不再读写共享区。
+6. **localStorage 半失效（读得出写不进）切内存真相源**：读写一旦抛错立刻置 storageBroken，之后以内存态为准——否则巡检把盘上旧 playing:true 读回来，暂停永远不生效。**绝不能用默认值兜底**（默认 playing:true 会复活播放）。此模式适用于任何「多 iframe 共享 localStorage」的状态层（§2 音量/静音共享层同理）。
+
+### 遥控器纪律
+
+遥控器是纯 UI：读共享意图（各层一致）渲染；播放/切歌/选模块/模式全部转交引擎写共享意图，不直接碰 audio。三种模式 `PlayMode = 'list'|'loop'|'shuffle'` 语义不变。**面板角落渲染引擎修订号**——玩家自检设备上加载到了哪一版（CDN purge 清不掉手机浏览器自身 HTTP 缓存，见 delivery.md §7.5）。
+
+### 已知平台边界
+
+iOS Safari 的 `HTMLMediaElement.volume` 只读——音量滑条在 iPhone 上调不动实际响度；要彻底解决需 Web Audio 路由（MediaElementSource + GainNode），属独立改造。

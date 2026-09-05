@@ -93,6 +93,17 @@ nsfwCgUrl（NSFW 覆盖一切）
 - `useIsMobile(breakpoint=768)`：**手动覆盖优先**（localStorage key + `useSyncExternalStore` 全局 store，可强制开/关），否则 `matchMedia` 自动检测。原因：iframe 中 matchMedia 测的是 iframe 自身视口，电脑全屏时可能误判，必须给用户手动开关兜底。
 - 桌面/移动两套布局共用 memo 子组件，`isMobile` 切分支；移动端：触摸滑动翻页、输入常驻底栏、立绘限宽。
 
+### 手机端长按自绘选字（划词类交互，进阶，r6）
+
+任何「从正文划词」的交互（收集线索、选词批注等）在手机 iframe 里会撞同一堵墙：**原生文本选择的系统复制/粘贴条压不掉（iOS 无解）**。桌面用原生划词（`user-select: text` + `selectionchange/mouseup` + `window.getSelection()` 的 Range 矩形定位弹层）；手机整段换成自绘选字：
+
+1. 正文渲染成**逐码点 `<span data-ci={i}>`**（`Array.from(displayedText)` 切分，emoji 等代理对不切坏），容器挂数据标记且**保持 select-none**——原生选择彻底不发生，系统菜单无从弹出；逐字 span 只在该交互开启时渲染，避免常态开销。
+2. document 级 touch 控制器（`passive:false`）：长按 ~320ms 起选（`navigator.vibrate` 震动反馈）→ 滑动扩选（rAF 合帧定位触点字符 + `preventDefault` 禁滚动；起选前位移 >10px 视为滚动并取消长按）→ 落指提交：首末 span 矩形合成弹层定位矩形，`Array.from(textContent)` 按码点切片取词。
+3. 清理纪律：点文本区外/滚动/关闭交互都清 span 高亮与弹层（单一 `clearCustom` 出口）；弹层上的触摸不参与选字手势（按钮可正常点）；扩选期间 `elementFromPoint` 定位不到字符时取矩形中心最近的 span；触屏设备对容器 `preventDefault` `contextmenu` 双保险；新手势开始前先 clearCustom 兜底换行/中断场景。
+4. **坑**：索引对齐必须按码点（`Array.from`），不能按 UTF-16 下标切中文正文；打字未完成时 span 逐步追加，索引只增不移。
+
+两套机制按 `useIsMobile()` 分流，弹层与收集逻辑共用。
+
 ## 11. CSS 设计系统（index.css，Tailwind v4 @theme）
 
 - **语义色板**：`--color-xxx` 直接变成 `bg-ink-900` 等工具类。按语义命名（背景墨色/正文纸色/主行动色/次强调/描边金/夜间面板），不用色值命名——换主题只改 @theme。

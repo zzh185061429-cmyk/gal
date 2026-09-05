@@ -5,7 +5,7 @@ description: 从零新建「幻璃镜式」galgame 楼层剧本前端新项目 �
 
 # Galgame 楼层剧本前端 · 新建项目套件
 
-> 版本 2026-09-04 r5 炼化（r3：双项目蓝本溯源入册、API 基准日与时效协议、路由自检、存在性探针、统一视图变体弃置；r4：公开发布——StageDog 模板直链、MIT 许可证、git 更新渠道；r5：功能方法论范围声明入册、backdrop-filter 禁令收窄为大面积常驻叠层、官方仓库地址修正为 `gal`）· 自包含可分发：整目录（SKILL.md + references/ + LICENSE）拷入 `~/.agents/skills/` 即可在任意机器/工作区生效，无外部依赖；官方副本 `https://github.com/zzh185061429-cmyk/gal`（更新：目录内 `git pull`）。
+> 版本 2026-09-05 r6 炼化（r3：双项目蓝本溯源入册、API 基准日与时效协议、路由自检、存在性探针、统一视图变体弃置；r4：公开发布——StageDog 模板直链、MIT 许可证、git 更新渠道；r5：功能方法论范围声明入册、backdrop-filter 禁令收窄为大面积常驻叠层、官方仓库地址修正为 `gal`；r6：同步幻璃镜 2026-09-05 修订——BGM 跨楼层出声权仲裁与六条铁律、共享 localStorage 纪律（先读盘再合并 patch、半失效切内存真相源）、手机端长按自绘选字、发布半截产物防护与手机浏览器 HTTP 缓存自检）· 自包含可分发：整目录（SKILL.md + references/ + LICENSE）拷入 `~/.agents/skills/` 即可在任意机器/工作区生效，无外部依赖；官方副本 `https://github.com/zzh185061429-cmyk/gal`（更新：目录内 `git pull`）。
 
 从零新建一套 galgame 楼层剧本前端：SillyTavern 酒馆助手（TavernHelper/JS-Slash-Runner）iframe 内嵌的 React 单文件应用，把 AI 的楼层文本变成可播放的视觉小说——剧本解析、逐行演出、选项交互、变量收账、构建交付。本 skill 的知识**自带、自包含**，蒸馏自两个实战项目（蓝本溯源见下节），不依赖任何项目源码；文中 `<项目名>` 是你的新项目名占位符。
 
@@ -23,6 +23,7 @@ description: 从零新建「幻璃镜式」galgame 楼层剧本前端新项目 �
 | 小手机（phone-ui） | 租借男友（单源） | 11 App / 69KB PhoneContext 的成熟实现 |
 | 角色地点池、时段天气引擎 | 租借男友蓝本 | 各文档标注「租借男友验证过」；幻璃镜后吸收 |
 | 音频 SFX | 双源同血缘 | 知识自租借男友流入幻璃镜 |
+| BGM 跨楼层出声权仲裁、共享状态纪律 | 幻璃镜（单源） | r6 入册：每个 AI 楼层一个 iframe、各带一份引擎，必须裁决谁出声 |
 | iframe 守卫/伪全屏、交付管线 | 幻璃镜（单源） | |
 | 锁定前端、界面正则交付 | 双项目验证 | 交付层最有价值的两件（delivery.md §3/§8） |
 
@@ -85,7 +86,7 @@ React App（GameContext 统一监听酒馆事件，只向 UI 广播 4 个信号�
 真实农历/节气/建除十二神宜忌，纯本地算法零 AI API；历注三层结构（宜忌硬规则 + 值神之性 + 玩法化翻译）让黄历成为 AI 可执行的行动指令系统；昼夜判定可升级为按节气日出日入漂移。→ `references/weather-daynight.md` §12
 
 ### 第 7 步：音频系统（可选）
-零音频文件：SFX 引擎用 Web Audio API 程序化合成（UI 音效集 + 打字 blip——按说话人名字哈希确定性定调）；AudioContext 必须等首次用户交互再创建；BGM 悬浮播放器吃直链曲库；设置走 pub-sub store + useSyncExternalStore + localStorage。→ `references/audio.md`
+零音频文件：SFX 引擎用 Web Audio API 程序化合成（UI 音效集 + 打字 blip——按说话人名字哈希确定性定调）；AudioContext 必须等首次用户交互再创建；BGM 悬浮播放器吃直链曲库；设置走 pub-sub store + useSyncExternalStore + localStorage。多楼层时每个 iframe 都 import 一份引擎、都有潜在 `<audio>`，需要出声权仲裁（六条铁律）→ `references/audio.md` §4
 
 ### 第 8 步：随机池图引擎（可选）
 幂等绑定（实例名为主键，已有绑定不重抽）+ 洗牌袋去重（全用尽才重洗）+ 属性硬约束（身份类约束永不放宽，宁可不配图）。人物池=先演后配按标签属性抽；地点池=先抽后演回注气质。确定性随机用 LCG 种子。→ `references/random-pools.md`
@@ -114,6 +115,7 @@ React App（GameContext 统一监听酒馆事件，只向 UI 广播 4 个信号�
 | 收账夹逼不生效/拿到旧值 | 在 `VARIABLE_UPDATE_ENDED` 回调里用 `getMvuData` 重读；应直接改写传入的 variables，框架随后落盘 |
 | 退出全屏后 iframe 高度错乱 | 全屏改了父页内联样式，退出后未恢复；用 burst（3 次×100ms）修复竞态，事件驱动守卫常驻 |
 | 手机检测误判 | iframe 里 `matchMedia` 测的是 iframe 视口；需 localStorage 手动覆盖开关兜底 |
+| 手机端长按正文选词，弹出系统复制/粘贴条 | 原生文本选择的系统菜单在 iframe 里压不掉（iOS 无解）；手机端改**自绘选字**：正文逐码点 span + 长按起选/滑动扩选/落指提交，容器保持 select-none；桌面保留原生划词 → `references/frontend-playbook.md` §10 |
 | 白屏/CSP 报错/react hook 报错 | react/react-dom 被外链导致双实例；webpack 中强制打包（勿 external） |
 | 封面/渐变/标签色静默失效（无报错、无日志） | 把 Tailwind 裸类名当 CSS 色值写（style 或 linear-gradient 里出现 `bg-ink-900`）；类名不是色值，用 @theme 语义变量 `var(--color-ink-900)` |
 | 楼层正文解析为空 | AI 输出没包 `<content>` 标签；解析器应降级为"剥思维链后全文" |
@@ -122,8 +124,14 @@ React App（GameContext 统一监听酒馆事件，只向 UI 广播 4 个信号�
 | 切聊天后数据错乱 | 未监听 `CHAT_CHANGED` 重建 state；聊天变量读取失败要 try/catch 返回 null |
 | 点了页面没声音 | AudioContext 被自动播放策略拦了；必须等首次 pointerdown/keydown 再创建，且每次播放前守卫 ctx 为空静默跳过 |
 | BGM 不出现 | 曲库 TRACKS 数组为空时挂件整个不渲染（设计行为）；填直链自动出现 |
+| 暂停 BGM 后马上又自动播放 | 多坑叠加：① writeShared 用本地过期状态整包回写，把别的楼层刚写的 playing/trackIdx 回滚——必须**先读盘最新值再合并 patch**；② 手机端 localStorage「读得出写不进」，巡检把盘上旧 playing:true 读回来——读写一旦失败立刻切**内存真相源**，绝不能用默认值兜底（默认 playing:true 会复活播放）；③ togglePlay 按共享区最新值翻转，不按本地旧值 |
+| 多楼层 BGM 齐鸣 / 声音忽大忽小 | 每层 iframe 一份引擎，出声权仲裁被过期回写打架；楼层探测瞬时失败被**永久缓存 null** 的楼层永远自认出声层——探测期每 tick 重试再固化 |
+| 出声权移交/切楼层后 BGM 从头重播 | 曲内进度必须进共享区（每秒写进度键，且与 UI 字段分离对账，避免进度写触发全楼层重渲染），接管楼层加载到同曲才 seek 接续 |
+| 同一 iframe 出现两个引擎 / 双 BGM | 脚本被正则重渲染重复执行；window 挂 `__<项目名>_BGM_INSTANCE__` 标记，重执行先 dispose 旧引擎（停巡检、移除 audio） |
 | 生图删图重跑还是同一张图 | Images API 被中转站缓存；切 Chat API 端点模式 |
 | 发了新版玩家没拿到 | CDN 缓存；purge.jsdelivr.net 逐文件刷新或等 12h；确认 JSON 里 URL 指向的仓库/分支对 |
+| 发布后玩家拿到半截产物（行为诡异/白屏） | 构建与发布串在同一条命令里跑，`git add` 读到还没写完的大文件，仓库进了截断 blob；**先 build 完全结束，再单独跑 publish**，发布后核对 CDN 字节数与本地一致 |
+| 玩家清了 CDN 缓存还是旧版 | jsDelivr purge 只清边缘缓存，**清不掉手机浏览器自身 HTTP 缓存**（@master 文件浏览器侧可缓存 12h）；在 UI 放可见版本号（如音乐面板角落的引擎修订号）让玩家自检，配合清缓存/无痕窗引导 |
 | src/data/*.ts 里的图 URL 手改后被覆盖 | 这些文件是生成器产物；要改图走生图工具上传 + 重跑生成器 |
 | 天气特效和 AI 看到的天气对不上 | 只改了渲染状态没写回预报缓存；突变/扰动必须 setCurrentPeriodWeather 落预报，所有消费方统一走 getWeather() |
 | 天气视觉用 backdrop-filter 白屏 | 禁的是**大面积常驻叠层**（全屏天气层/粒子容器），部分浏览器 iframe 上下文白屏——换半透明色块 + Canvas 粒子；小面积 backdrop-blur（文本框、弹窗遮罩）两蓝本项目真机长期使用无恙。判据 = 层面积 × 常驻时长，不是属性本身 |
@@ -144,15 +152,15 @@ React App（GameContext 统一监听酒馆事件，只向 UI 广播 4 个信号�
 | `references/architecture.md` | 总架构：事件生命周期状态机、楼层三态、发送/重生成完整链路、TavernHelper API 用法清单 |
 | `references/api-probe.md` | TavernHelper API 存在性探针：运行语境陷阱、判读规则、基准快照 |
 | `references/mvu.md` | MVU 接入全案：bundle 挂载、Zod schema、世界书契约、前端适配层、降级链 |
-| `references/frontend-playbook.md` | React 演出层实现：入口守卫、iframe 守卫、伪全屏、打字机、立绘、移动端、CSS 设计系统 |
+| `references/frontend-playbook.md` | React 演出层实现：入口守卫、iframe 守卫、伪全屏、打字机、立绘、移动端、CSS 设计系统、手机自绘选字 |
 | `references/weather-daynight.md` | 时段天气引擎：昼夜/时段、季节概率、马尔可夫 7 日预报、确定性突变、正文回写与 AI 注入、视觉叠层；岁时历（真实农历/节气/黄历宜忌/节气日出日入，§12） |
-| `references/audio.md` | 音频子系统：SFX 合成引擎（UI 音效/打字 blip/情绪音效）、pub-sub 设置层、BGM 播放器 |
+| `references/audio.md` | 音频子系统：SFX 合成引擎（UI 音效/打字 blip/情绪音效）、pub-sub 设置层、BGM 播放器、跨楼层出声权仲裁（六条铁律） |
 | `references/random-pools.md` | 随机池图引擎：幂等绑定、洗牌袋、属性放宽候选链、tier 型地点池、确定性随机 |
 | `references/character-locations.md` | 角色地点池：三层位置模型、空闲池加权随机五步修正链、串门校验、位置表 AI 注入 |
 | `references/phone-ui.md` | 小手机：悬浮球+壳+App 懒加载、三层持久化、副API社交模拟、历史压缩、世界书联动 |
 | `references/worldbook-write.md` | 前端写世界书：蓝/绿灯条目、单条目幂等翻页、并发串行、模板归一自愈 |
 | `references/asset-pipeline.md` | 美术资产管线：批量生图、防重复出图、图床上传、生成器脚本、manifest 账本 |
-| `references/delivery.md` | 构建与交付：webpack 模板机制、界面正则/脚本 JSON 字段逐解、CDN/CI、锁定前端、导入步骤 |
+| `references/delivery.md` | 构建与交付：webpack 模板机制、界面正则/脚本 JSON 字段逐解、CDN/CI、锁定前端、导入步骤、产物完整性与缓存自检 |
 
 ## 宿主环境与降级原则
 

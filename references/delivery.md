@@ -84,7 +84,7 @@
 - 发布链路：push 到 main/master → GitHub Actions checkout → **删 dist** → pnpm install && pnpm build → add-and-commit 提交新 dist → autotag 打 `vX.Y.Z`。
 - jsDelivr 直接映射 GitHub 路径：`https://cdn.jsdelivr.net/gh/<user>/<repo>@master/dist/yaoguai/<项目名>/index.html`。打 tag 是为了让 `@master` 非版本引用走缓存策略。
 - `git config --global merge.ours.driver true`：dist 冲突一律取当前版本（CI 会重建）。
-- **更新不生效**：CDN 缓存是主因。手段：发布打 tag、必要时换仓库名/路径强刷。
+- **更新不生效**：CDN 缓存是主因。手段：发布打 tag、必要时换仓库名/路径强刷。注意 purge 只清 jsDelivr 边缘缓存，**清不掉手机浏览器自身 HTTP 缓存**——手机端自检见 §7.5「手机端缓存自检」。
 
 ## 7.5 手动发布器（可选，不等 CI 的快速通道）
 
@@ -100,6 +100,10 @@ node tools\publis\publish_artifact.mjs <仓库> dist/yaoguai/<项目名>/index.h
 - 成功后为每个文件打印 CDN 地址（路径逐段 encodeURIComponent，中文文件名安全）。
 
 **日常更新三步**：① `pnpm build`（不打包就发布=传旧文件）→ ② publish 命令 → ③（可选，要立刻生效才做）浏览器打开 `https://purge.jsdelivr.net/gh/<user>/<repo>@master/dist/...` 逐个刷缓存（显示 `"success": true`）；不刷则玩家最多 12h 后自动拿到新版。正则/脚本 JSON 一个字不用改——URL 没变，内容已是新版。
+
+**⚠ 构建与发布绝不许串在同一条命令里跑**（`build & publish` 会翻车）：webpack 还没把 10MB 级单文件产物写完，`git add` 就读走了半截，仓库里进截断 blob，玩家拿到行为诡异的前端且极难察觉。必须等 build 完全结束（进程退出）再单独跑 publish（CI 路线天然分步，无此坑）。发布后自检一条：CDN 文件字节数 == 本地 `dist` 文件字节数（用 `fs.statSync(...).size` 比字节，别比字符串长度——UTF-16 码元数不等于字节数；也别拿 `</html>` 当结尾判据，单文件产物以 `</body>` 收尾）。
+
+**手机端缓存自检**：purge 只清 jsDelivr 边缘，清不掉玩家手机浏览器自己的 HTTP 缓存（@master 文件浏览器侧可缓存约 12h）。UI 上要放**可见版本号**（如音乐面板角落的引擎修订号），玩家报「没更新」先让他看版本号，再看是不是要清浏览器缓存/无痕窗。
 
 **三条铁律**：① 发给别人的 JSON 里不许出现 `localhost`（只允许出现在默认禁用的「实时修改」开发 JSON 里）；② 发布前必须先 build；③ 新建 CDN 仓库时一个勾都不打（勾了 README 首推必冲突）。
 
