@@ -96,16 +96,18 @@ node tools\publis\publish_artifact.mjs <仓库> dist/yaoguai/<项目名>/index.h
 
 - `<仓库>` 三种写法：已配置的远程名 / `owner/repo` / 完整 URL；后两种首次推送自动登记同名远程。
 - 机制：`GIT_INDEX_FILE` 临时索引 → `read-tree` 远端 head → `add` 指定路径 → `write-tree` → 与远端 tree 完全一致则跳过 → `commit-tree -p 远端head`（快进推送，历史保留）→ push。
-- 选项：`-m 信息`、`-b 分支`（默认 master）、`--replace-all`（整体替换）、`--dry-run`。
+- 选项：`-m 信息`、`-b 分支`（默认 master）、`--replace-all`（整体替换，**清仓级操作，日常禁用，见下**）、`--dry-run`。
 - 成功后为每个文件打印 CDN 地址（路径逐段 encodeURIComponent，中文文件名安全）。
 
 **日常更新三步**：① `pnpm build`（不打包就发布=传旧文件）→ ② publish 命令 → ③（可选，要立刻生效才做）浏览器打开 `https://purge.jsdelivr.net/gh/<user>/<repo>@master/dist/...` 逐个刷缓存（显示 `"success": true`）；不刷则玩家最多 12h 后自动拿到新版。正则/脚本 JSON 一个字不用改——URL 没变，内容已是新版。
 
 **⚠ 构建与发布绝不许串在同一条命令里跑**（`build & publish` 会翻车）：webpack 还没把 10MB 级单文件产物写完，`git add` 就读走了半截，仓库里进截断 blob，玩家拿到行为诡异的前端且极难察觉。必须等 build 完全结束（进程退出）再单独跑 publish（CI 路线天然分步，无此坑）。发布后自检一条：CDN 文件字节数 == 本地 `dist` 文件字节数（用 `fs.statSync(...).size` 比字节，别比字符串长度——UTF-16 码元数不等于字节数；也别拿 `</html>` 当结尾判据，单文件产物以 `</body>` 收尾）。
 
+**⚠ `--replace-all` 日常发布禁用——CDN 仓库常常「前端产物 + 静态资产」同仓**：幻璃镜的 yaoguaiN 仓库里 `dist/…` 前端与 `music/` BGM 曲库共存，曲库直链就指本仓。日常更新只用**默认模式**（覆盖同名文件、其余原样保留）。真机事故：一次 replace-all 把 `music/` 下 32 个 mp3 整体移除，玩家 BGM 即刻 404（BGM 引擎运行时直链拉取）。非用不可时：先 `git ls-tree -r --name-only <远程>` 看清仓里还有什么，确认清单覆盖全部要保留的内容。误删后补救：`git worktree add --detach <临时目录> <远程名>/<分支>` → 在 worktree 里 `git checkout <旧提交> -- <被删目录>` → commit → push → 逐文件 purge（404 缓存残留 + 源站同步延迟各要等一会，恢复后抽查字节数）。
+
 **手机端缓存自检**：purge 只清 jsDelivr 边缘，清不掉玩家手机浏览器自己的 HTTP 缓存（@master 文件浏览器侧可缓存约 12h）。UI 上要放**可见版本号**（如音乐面板角落的引擎修订号），玩家报「没更新」先让他看版本号，再看是不是要清浏览器缓存/无痕窗。
 
-**三条铁律**：① 发给别人的 JSON 里不许出现 `localhost`（只允许出现在默认禁用的「实时修改」开发 JSON 里）；② 发布前必须先 build；③ 新建 CDN 仓库时一个勾都不打（勾了 README 首推必冲突）。
+**四条铁律**：① 发给别人的 JSON 里不许出现 `localhost`（只允许出现在默认禁用的「实时修改」开发 JSON 里）；② 发布前必须先 build；③ 新建 CDN 仓库时一个勾都不打（勾了 README 首推必冲突）；④ 日常发布只用 publish 默认覆盖模式，`--replace-all` 仅限有意清仓，且动手前先 `git ls-tree` 验仓（前端与曲库等同仓资产共存是常态）。
 
 **排查**：`! [rejected] (non-fast-forward)`=仓库被网页端手动改过（勿强推）；404=等 5 分钟 + 确认仓库 Public；「无需发布」=没改东西或忘了 build。**别发整个文件夹**（会把 .map、LICENSE.txt 等调试文件也传上去）。
 
